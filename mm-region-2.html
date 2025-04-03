@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive World Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 90vh; width: 100%; }
+        .info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 8px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <div id="info" class="info">Hover over a country</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-geojson-vt@1.0.0/leaflet-geojson-vt.js"></script>
+    
+    <script>
+        // Initialize the map
+        var map = L.map('map').setView([20, 0], 2);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Load GeoJSON data
+        fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+            .then(response => response.json())
+            .then(data => {
+                var geojsonLayer = L.geoJson(data, {
+                    style: {
+                        color: "#555",
+                        weight: 1,
+                        fillColor: "#ddd",
+                        fillOpacity: 0.7
+                    },
+                    onEachFeature: function (feature, layer) {
+                        layer.on({
+                            mouseover: function (e) {
+                                e.target.setStyle({
+                                    fillColor: "#ff5733",
+                                    weight: 2
+                                });
+                                document.getElementById('info').innerHTML = feature.properties.name;
+                            },
+                            mouseout: function (e) {
+                                geojsonLayer.resetStyle(e.target);
+                                document.getElementById('info').innerHTML = "Hover over a country";
+                            }
+                        });
+                    }
+                }).addTo(map);
+            });
+    </script>
+
+</body>
+</html>

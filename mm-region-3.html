@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myanmar States & Regions Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 90vh; width: 100%; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <hr/>
+    <div id="info" class="info">Hover over a region</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        var map = L.map('map').setView([21.0, 96.0], 6); // Center Myanmar
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Load Myanmar States & Regions GeoJSON
+        fetch('./myanmar.json')
+            .then(response => response.json())
+            .then(data => {
+
+                var geojsonLayer = L.geoJson(data, {
+                    style: {
+                        color: "#555",
+                        weight: 1,
+                        fillColor: "#ddd",
+                        fillOpacity: 0.7
+                    },
+                    onEachFeature: function (feature, layer) {
+                        console.log(feature.properties);
+                        // Bind popup once (do not re-bind inside mouseover)
+                        var popupContent = `<b>${feature.properties.ST_MMR}</b><br>
+                                            သေဆုံး: ${feature.properties.population ?? "N/A"}<br>
+                                            ဒဏ်ရာရ: ${feature.properties.area_km2 ?? "N/A"} `;
+
+                        layer.bindPopup(popupContent, { autoClose: false, closeOnClick: false });
+
+
+                        layer.on({
+                            mouseover: function (e) {
+                                
+                                console.log("mouseover", e.target);
+                                e.target.setStyle({
+                                    fillColor: "#ff5733",
+                                    weight: 2
+                                });
+                                document.getElementById('info').innerHTML = feature.properties.ST_MMR;
+                                // document.getElementById('info').innerHTML = "Hello INFO";
+
+                                // var popupContent = `<b>${feature.properties.ST_MMR}</b><br>
+                                //     Population: ${feature.properties.population ?? "N/A"}<br>
+                                //     Area: ${feature.properties.area_km2 ?? "N/A"} km²`;
+                                // layer.bindPopup(popupContent).openPopup();
+
+                                // Open popup at the hovered layer
+                                // layer.openPopup();
+                                var latLng = e.latlng;  // Get the mouse location
+                                var popup = L.popup()
+                                    .setLatLng(latLng)  // Set popup location to mouse position
+                                    .setContent(popupContent)
+                                    .openOn(map);
+                            },
+                            mouseout: function (e) {
+                                console.log("mouseout", e.target);
+                                geojsonLayer.resetStyle(e.target);
+                                document.getElementById('info').innerHTML = "Hover over a region";
+                                layer.closePopup();
+                                // Close the popup on mouseout
+                                // e.target.closePopup();
+                            }
+                        });
+                    }
+                }).addTo(map);
+            });
+    </script>
+
+</body>
+</html>
