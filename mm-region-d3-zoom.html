@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myanmar States & Regions Map</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #map { height: 90vh; width: 100%; }
+        .info { padding: 10px; background-color: lightyellow; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <script>
+        // Set up the SVG canvas
+        const width = window.innerWidth, height = window.innerHeight; //  * 0.9;
+        const svg = d3.select("#map").append("svg").attr("width", width).attr("height", height);
+
+        // Set up projection and path generator
+        const projection = d3.geoMercator().center([96, 21]).scale(3500).translate([width / 2, height / 2]);
+        const path = d3.geoPath().projection(projection);
+
+        // Set up zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([1, 8]) // Minimum and maximum zoom levels
+            .on("zoom", function(event) {
+                svg.selectAll("g") // Apply zoom to the group containing regions
+                    .attr("transform", event.transform);
+            });
+
+        svg.call(zoom); // Enable zoom behavior on the SVG
+
+        // Load Myanmar States & Regions GeoJSON
+        fetch('./myanmar.json')
+            .then(response => response.json())
+            .then(data => {
+                // Create a group to hold the regions
+                const regionsGroup = svg.append("g");
+
+                // Add the regions (states/regions) to the map
+                regionsGroup.selectAll(".region")
+                    .data(data.features)
+                    .enter().append("path")
+                    .attr("class", "region")
+                    .attr("d", path)
+                    .attr("fill", "#ddd")
+                    .attr("stroke", "#555")
+                    .attr("stroke-width", 1)
+                    .attr("opacity", 0.7)
+                    .on("mouseover", function(event, d) {
+                        d3.select(this)
+                            .attr("fill", "#ff5733")
+                            .attr("stroke-width", 2);
+
+                        document.getElementById('info').innerHTML = d.properties.ST_MMR;
+
+                        const popupContent = `<b>${d.properties.ST_MMR}</b><br>
+                                              သေဆုံး: ${d.properties.population ?? "N/A"}<br>
+                                              ဒဏ်ရာရ: ${d.properties.area_km2 ?? "N/A"}`;
+
+                        // Display the popup near the mouse cursor
+                        const [x, y] = d3.pointer(event);
+                        const popup = d3.select("#info");
+                        popup.style("position", "absolute")
+                            .style("left", `${x + 20}px`)
+                            .style("top", `${y + 20}px`)
+                            .html(popupContent);
+                    })
+                    .on("mouseout", function(event, d) {
+                        d3.select(this)
+                            .attr("fill", "#ddd")
+                            .attr("stroke-width", 1);
+
+                        document.getElementById('info').innerHTML = "Hover over a region";
+                    });
+            })
+            .catch(error => console.error("Error loading geojson data:", error));
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myanmar States & Regions Map</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body, html {
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            height: 100vh;
+            width: 100%;
+            position: relative;
+        }
+        .info {
+            padding: 10px;
+            background-color: lightyellow;
+            border: 1px solid #ddd;
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 1000;
+            font-size: 1rem;
+        }
+        @media (max-width: 768px) {
+            .info {
+                font-size: 0.9rem;
+                bottom: 5px;
+                left: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <div id="info" class="info">Hover over a region</div>
+
+    <script>
+        // Set up the SVG canvas, now using viewport units for responsiveness
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const svg = d3.select("#map").append("svg").attr("width", width).attr("height", height);
+
+        // Set up projection and path generator
+        const projection = d3.geoMercator().center([96, 21]).scale(3500).translate([width / 2, height / 2]);
+        const path = d3.geoPath().projection(projection);
+
+        // Resize the SVG canvas when the window is resized
+        window.addEventListener('resize', () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            svg.attr("width", width).attr("height", height);
+            projection.translate([width / 2, height / 2]);
+            svg.selectAll(".region").attr("d", path);
+        });
+
+        // Load Myanmar States & Regions GeoJSON
+        fetch('./myanmar.json')
+            .then(response => response.json())
+            .then(data => {
+
+                // Add the regions (states/regions) to the map
+                svg.selectAll(".region")
+                    .data(data.features)
+                    .enter().append("path")
+                    .attr("class", "region")
+                    .attr("d", path)
+                    .attr("fill", "#ddd")
+                    .attr("stroke", "#555")
+                    .attr("stroke-width", 1)
+                    .attr("opacity", 0.7)
+                    .on("mouseover", function(event, d) {
+                        d3.select(this)
+                            .attr("fill", "#ff5733")
+                            .attr("stroke-width", 2);
+
+                        document.getElementById('info').innerHTML = d.properties.ST_MMR;
+
+                        const popupContent = `<b>${d.properties.ST_MMR}</b><br>
+                                              သေဆုံး: ${d.properties.population ?? "N/A"}<br>
+                                              ဒဏ်ရာရ: ${d.properties.area_km2 ?? "N/A"}`;
+
+                        // Display the popup near the mouse cursor
+                        const [x, y] = d3.pointer(event);
+                        const popup = d3.select("#info");
+                        popup.style("position", "absolute")
+                            .style("left", `${x + 20}px`)
+                            .style("top", `${y + 20}px`)
+                            .html(popupContent);
+                    })
+                    .on("mouseout", function(event, d) {
+                        d3.select(this)
+                            .attr("fill", "#ddd")
+                            .attr("stroke-width", 1);
+
+                        document.getElementById('info').innerHTML = "Hover over a region";
+                    });
+            })
+            .catch(error => console.error("Error loading geojson data:", error));
+    </script>
+
+</body>
+</html>
